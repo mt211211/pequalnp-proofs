@@ -26,7 +26,8 @@ jobs:
           path: |
             ~/.elan
             up/lean/.lake/packages
-          key: up-lean-${{ hashFiles('up/lean/lake-manifest.json', 'up/lean/lean-toolchain') }}-v1
+            up/lean/.lake/build
+          key: up-lean-${{ hashFiles('up/lean/lake-manifest.json', 'up/lean/lean-toolchain') }}-v2
       - name: Lean setup
         if: hashFiles('scratch/LEAN') != ''
         run: |
