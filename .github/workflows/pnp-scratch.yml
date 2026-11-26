@@ -1,8 +1,9 @@
-# Scratch runner for this fork only: runs desk calls and Lean builds, and commits the output to branch pnp-results.
+# Scratch runner for this fork only: runs desk calls and Lean builds against upstream main, and commits the output to branch pnp-results.
 name: pnp-scratch
 on:
   push:
     branches: [pnp-scratch]
+    paths-ignore: [scratch/LEASE]
 permissions:
   contents: write
 concurrency:
@@ -12,29 +13,32 @@ jobs:
   run:
     if: github.repository == 'mt211211/pequalnp-proofs'
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 100
     steps:
       - uses: actions/checkout@v4
+      - name: Upstream tree
+        if: hashFiles('scratch/LEAN') != ''
+        run: git clone -q --depth 1 https://github.com/open-goat/pequalnp-proofs up && git -C up log --oneline -1
       - name: Lean cache
         if: hashFiles('scratch/LEAN') != ''
         uses: actions/cache@v4
         with:
           path: |
             ~/.elan
-            lean/.lake
-          key: lean-${{ hashFiles('lean/lake-manifest.json', 'lean/lean-toolchain') }}-v1
+            up/lean/.lake/packages
+          key: up-lean-${{ hashFiles('up/lean/lake-manifest.json', 'up/lean/lean-toolchain') }}-v1
       - name: Lean setup
         if: hashFiles('scratch/LEAN') != ''
         run: |
           [ -x "$HOME/.elan/bin/lake" ] || curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
-          "$HOME/.elan/bin/elan" toolchain install "$(cat lean/lean-toolchain)"
-          cd lean && "$HOME/.elan/bin/lake" exe cache get > /dev/null 2>&1; echo "cache get $?"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat up/lean/lean-toolchain)"
+          cd up/lean && "$HOME/.elan/bin/lake" exe cache get > /dev/null 2>&1; echo "cache get $?"
       - name: job
         run: |
           set +e
           mkdir -p out
-          bash scratch/job.sh > out/log.txt 2>&1
+          timeout 80m bash scratch/job.sh > out/log.txt 2>&1
           echo "exit $?" >> out/log.txt
       - name: commit results
         if: always()
