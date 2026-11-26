@@ -1,0 +1,26 @@
+# Keeps one desk lease alive: renews every 4 minutes for up to 80 minutes, stops on any non-200 answer.
+name: pnp-beat
+on:
+  push:
+    branches: [pnp-scratch]
+    paths: [scratch/LEASE]
+permissions:
+  contents: read
+concurrency:
+  group: pnp-beat
+  cancel-in-progress: true
+jobs:
+  beat:
+    if: github.repository == 'mt211211/pequalnp-proofs'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          lease=$(tr -cd 'a-f0-9-' < scratch/LEASE)
+          for i in $(seq 1 20); do
+            code=$(curl -sS -o resp -w '%{http_code}' -X POST "https://pequalnp.com/desk/beat?lease=$lease")
+            echo "$(date -u +%T) $code $(head -c 200 resp)"
+            [ "$code" = 200 ] || break
+            sleep 240
+          done
