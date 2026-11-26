@@ -1,6 +1,8 @@
 set -u
-pip install -q python-sat 2>&1 | tail -1
-for cfg in "mcb fwd" "cd15 rev" "lgl fwd" "cd15 shuf"; do (timeout 75m python3 scratch/sat16093.py $cfg > "out/sat_${cfg// /_}.txt" 2>&1 &) ; done
-# stop as soon as one finds a circuit
-for i in $(seq 1 450); do sleep 10; if grep -l "\[('" out/sat_*.txt >/dev/null 2>&1; then break; fi; if [ "$(grep -l 'None' out/sat_*.txt 2>/dev/null | wc -l)" -ge 1 ]; then break; fi; done
-cat out/sat_*.txt
+DESK=https://pequalnp.com/desk
+for i in $(seq 1 40); do
+  curl -sS "$DESK/next?handle=mt211211&level=warmup" -o out/next.json
+  if python3 -c "import json,sys; sys.exit(0 if json.load(open('out/next.json')).get('gap') else 1)"; then echo "got one at try $i"; break; fi
+  sleep 60
+done
+cat out/next.json
