@@ -5,6 +5,9 @@ on:
     branches: [pnp-scratch]
 permissions:
   contents: write
+concurrency:
+  group: pnp-scratch
+  cancel-in-progress: false
 jobs:
   run:
     if: github.repository == 'mt211211/pequalnp-proofs'
@@ -12,6 +15,21 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+      - name: Lean cache
+        if: hashFiles('scratch/LEAN') != ''
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.elan
+            lean/.lake
+          key: lean-${{ hashFiles('lean/lake-manifest.json', 'lean/lean-toolchain') }}-v1
+      - name: Lean setup
+        if: hashFiles('scratch/LEAN') != ''
+        run: |
+          [ -x "$HOME/.elan/bin/lake" ] || curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean/lean-toolchain)"
+          cd lean && "$HOME/.elan/bin/lake" exe cache get > /dev/null 2>&1; echo "cache get $?"
       - name: job
         run: |
           set +e
