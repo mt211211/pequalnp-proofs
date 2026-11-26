@@ -1,0 +1,28 @@
+# Scratch runner for this fork only: runs desk calls and Lean builds, and commits the output to branch pnp-results.
+name: pnp-scratch
+on:
+  push:
+    branches: [pnp-scratch]
+permissions:
+  contents: write
+jobs:
+  run:
+    if: github.repository == 'mt211211/pequalnp-proofs'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: job
+        run: |
+          set +e
+          mkdir -p out
+          bash scratch/job.sh > out/log.txt 2>&1
+          echo "exit $?" >> out/log.txt
+      - name: commit results
+        if: always()
+        run: |
+          git config user.name pnp-bot; git config user.email pnp-bot@users.noreply.github.com
+          git checkout -B pnp-results
+          git add -f out
+          git commit -qm "results $GITHUB_RUN_ID"
+          git push -f origin pnp-results
