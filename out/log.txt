@@ -1,0 +1,7 @@
+scratch/lean.sh: line 4: out/tl9_mcb.txt: No such file or directory
+scratch/lean.sh: line 4: out/tl9_lgl.txt: No such file or directory
+scratch/lean.sh: line 4: out/tl9_cd19.txt: No such file or directory
+scratch/lean.sh: line 4: out/tl9_mpl.txt: No such file or directory
+== out/tl9_*.txt
+cat: 'out/tl9_*.txt': No such file or directory
+exit 1
