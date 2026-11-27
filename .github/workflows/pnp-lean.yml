@@ -1,0 +1,51 @@
+# Fork-only helper: builds scratch Lean files against upstream main; commits the log to branch pnp-lean.
+name: pnp-lean
+on:
+  push:
+    branches: [pnp-scratch]
+    paths: [scratch/LEANJOB]
+permissions:
+  contents: write
+concurrency:
+  group: pnp-lean
+  cancel-in-progress: false
+jobs:
+  run:
+    if: github.repository == 'mt211211/pequalnp-proofs'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upstream tree
+        if: true
+        run: git clone -q --depth 1 https://github.com/open-goat/pequalnp-proofs up && git -C up log --oneline -1
+      - name: Lean cache
+        if: true
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.elan
+            up/lean/.lake/packages
+            up/lean/.lake/build
+          key: up-lean-${{ hashFiles('up/lean/lake-manifest.json', 'up/lean/lean-toolchain') }}-v2
+      - name: Lean setup
+        if: true
+        run: |
+          [ -x "$HOME/.elan/bin/lake" ] || curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install "$(cat up/lean/lean-toolchain)"
+          cd up/lean && "$HOME/.elan/bin/lake" exe cache get > /dev/null 2>&1; echo "cache get $?"
+      - name: job
+        run: |
+          set +e
+          mkdir -p out
+          timeout 80m bash scratch/lean.sh > out/log.txt 2>&1
+          echo "exit $?" >> out/log.txt
+      - name: commit results
+        if: always()
+        run: |
+          git config user.name pnp-bot; git config user.email pnp-bot@users.noreply.github.com
+          git checkout -B pnp-lean
+          git add -f out
+          git commit -qm "results $GITHUB_RUN_ID"
+          git push -f origin pnp-lean
