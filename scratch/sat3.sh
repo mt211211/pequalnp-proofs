@@ -1,5 +1,6 @@
 set -u
 pip install -q python-sat 2>&1 | tail -1
-for s in mcb lgl cd19 mpl; do (timeout 70m python3 scratch/tl9.py $s > out3/tl9_$s.txt 2>&1 &); done
-for i in $(seq 1 410); do sleep 10; if grep -q "\[(" out3/tl9_*.txt 2>/dev/null; then break; fi; if grep -q "None" out3/tl9_*.txt 2>/dev/null; then break; fi; done
-for f in out3/tl9_*.txt; do echo "== $f"; cat $f; done
+cd scratch
+for cfg in "12 mcb" "11 cd15" "11 mcb" "10 mcb"; do set -- $cfg; (timeout 75m python3 pm12.py $1 $2 > ../out3/pm_$1_$2.txt 2>&1 &); done
+for i in $(seq 1 440); do sleep 10; if grep -q "result True" ../out3/pm_*.txt 2>/dev/null; then sleep 3; break; fi; [ "$(grep -l 'result False' ../out3/pm_*.txt 2>/dev/null | wc -l)" -ge 4 ] && break; done
+for f in ../out3/pm_*.txt; do echo "== $f"; cat $f; done
