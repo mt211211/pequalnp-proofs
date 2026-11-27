@@ -20,6 +20,7 @@ jobs:
           DESK=https://pequalnp.com/desk
           mkdir -p step; lease=""
           if [ -f scratch/RELEASE ]; then read -r rl rr < scratch/RELEASE; echo "release $rl $rr"; curl -sS -X POST "$DESK/release?lease=$rl&reason=$rr"; echo; fi
+          if grep -q off scratch/POLL; then echo POLL_OFF; exit 0; fi
           for i in $(seq 1 170); do
             if [ -z "$lease" ]; then
               curl -sS "$DESK/next?handle=mt211211" -o step/next.json

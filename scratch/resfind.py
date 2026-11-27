@@ -64,6 +64,14 @@ if WMAX:
         lits=[pos[l][w] for w in range(NV)]+[neg[l][w] for w in range(NV)]
         enc=CardEnc.atmost(lits, WMAX, top_id=cnt[0], encoding=EncType.seqcounter)
         cnt[0]=max(cnt[0], enc.nv); cl += enc.clauses
+import os
+if os.environ.get('PREFIX'):
+    pre=json.load(open(os.environ['PREFIX']))
+    for t,(P,N_,a,b,w) in enumerate(pre):
+        l=A+t
+        for x in range(NV):
+            cl.append([pos[l][x]] if x in P else [-pos[l][x]]); cl.append([neg[l][x]] if x in N_ else [-neg[l][x]])
+        cl.append([sa[l][a]]); cl.append([sb[l][b]]); cl.append([piv[l][w]])
 print('vars',cnt[0],'clauses',len(cl),flush=True)
 t=time.time()
 with Solver(name=sname, bootstrap_with=cl) as s:
