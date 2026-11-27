@@ -2,7 +2,7 @@
 import sys, itertools, time, json
 from pysat.solvers import Solver
 from pysat.card import CardEnc, EncType
-m, n, K = map(int, sys.argv[1:4]); sname = sys.argv[4] if len(sys.argv) > 4 else 'cd15'
+m, n, K = map(int, sys.argv[1:4]); sname = sys.argv[4] if len(sys.argv) > 4 else 'cd15'; WMAX = int(sys.argv[5]) if len(sys.argv) > 5 else 0
 V=[(i,j) for i in range(m) for j in range(n)]; NV=len(V); vid={v:k for k,v in enumerate(V)}
 AX=[]
 for i in range(m): AX.append(({vid[(i,j)] for j in range(n)}, set()))
@@ -43,6 +43,27 @@ for w in range(NV): cl += [[-pos[L-1][w]],[-neg[L-1][w]]]
 # every derived line except the last is used later
 for l in range(A, L-1):
     cl.append([sa[k][l] for k in range(l+1,L)]+[sb[k][l] for k in range(l+1,L)])
+
+# symmetry: if line l+1 does not read line l, then the positive premise of l is <= that of l+1 (greedy topological order)
+for l in range(A, L-1):
+    for k1 in range(l):
+        for k2 in range(k1):
+            cl.append([sa[l+1][l], sb[l+1][l], -sa[l][k1], -sa[l+1][k2]])
+# no duplicate derived lines (differ in some literal)
+for l1 in range(A, L):
+    for l2 in range(l1+1, L):
+        d=[]
+        for w in range(NV):
+            for X in (pos, neg):
+                z=new(); d.append(z)
+                cl += [[-z, X[l1][w], X[l2][w]], [-z, -X[l1][w], -X[l2][w]]]
+        cl.append(d)
+# width cap
+if WMAX:
+    for l in range(A, L):
+        lits=[pos[l][w] for w in range(NV)]+[neg[l][w] for w in range(NV)]
+        enc=CardEnc.atmost(lits, WMAX, top_id=cnt[0], encoding=EncType.seqcounter)
+        cnt[0]=max(cnt[0], enc.nv); cl += enc.clauses
 print('vars',cnt[0],'clauses',len(cl),flush=True)
 t=time.time()
 with Solver(name=sname, bootstrap_with=cl) as s:
