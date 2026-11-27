@@ -1,0 +1,32 @@
+# Fork-only helper: a second SAT job, run beside pnp-scratch; commits its output to branch pnp-sat2.
+name: pnp-sat2
+on:
+  push:
+    branches: [pnp-scratch]
+    paths: [scratch/SAT2]
+permissions:
+  contents: write
+concurrency:
+  group: pnp-sat2
+  cancel-in-progress: true
+jobs:
+  run:
+    if: github.repository == 'mt211211/pequalnp-proofs'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - name: job
+        run: |
+          set +e
+          mkdir -p out2
+          timeout 280m bash scratch/sat2.sh > out2/log.txt 2>&1
+          echo "exit $?" >> out2/log.txt
+      - name: commit results
+        if: always()
+        run: |
+          git config user.name pnp-bot; git config user.email pnp-bot@users.noreply.github.com
+          git checkout -B pnp-sat2
+          git add -f out2
+          git commit -qm "sat2 $GITHUB_RUN_ID"
+          git push -f origin pnp-sat2
